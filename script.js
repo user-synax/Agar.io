@@ -55,6 +55,9 @@ function update(dt) {
         player.x += dirX * player.speed * dt
         player.y += dirY * player.speed * dt
     }
+
+    player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x))
+    player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y))
 }
 
 function render() {
