@@ -9,6 +9,16 @@ const player = {
     speed: 300
 }
 
+const mouse = {
+    x: 0,
+    y: 0
+}
+
+window.addEventListener('mousemove', (e) => {
+    mouse.x = e.clientX
+    mouse.y = e.clientY
+})
+
 function resizeCanvas() {
     canvas.width = window.innerWidth
     canvas.height = window.innerHeight
@@ -33,7 +43,19 @@ function gameLoop(currentTime) {
     requestAnimationFrame(gameLoop)
 }
 
-function update(dt) { }
+function update(dt) {
+    const dx = mouse.x - player.x
+    const dy = mouse.y - player.y
+    const distance = Math.sqrt(dx * dx + dy * dy)
+
+    if (distance > 1) {
+        const dirX = dx / distance
+        const dirY = dy / distance
+
+        player.x += dirX * player.speed * dt
+        player.y += dirY * player.speed * dt
+    }
+}
 
 function render() {
     ctx.fillStyle = "#1a1a2e"
