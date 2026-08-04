@@ -34,6 +34,9 @@ function loadPlayerData() {
     }
 }
 
+const DECAY_THRESHOLD = 90
+const DECAY_RATE = 2
+
 
 const SKINS = {
     default: {
@@ -416,7 +419,7 @@ function spawnBot() {
         x: Math.random() * world.width,
         y: Math.random() * world.height,
         radius: 15 + Math.random() * 50,
-        color: '#e76f51',
+        color: '#fc3200',
         baseSpeed: 400,
         targetFood: null,
         name: generateBotName()
@@ -625,6 +628,11 @@ function update(dt) {
 
     player.x = Math.max(player.radius, Math.min(world.width - player.radius, player.x))
     player.y = Math.max(player.radius, Math.min(world.height - player.radius, player.y))
+
+    if (player.radius > DECAY_THRESHOLD) {
+        player.radius -= DECAY_RATE * dt
+    }
+
     checkFoodCollision()
     checkCoinCollision()
     updateBots(dt)
@@ -678,6 +686,10 @@ function checkBotFoodCollision() {
 function updateBots(dt) {
     for (const b of bots) {
         let targetX, targetY
+
+        if (b.radius > DECAY_THRESHOLD) {
+            b.radius -= DECAY_RATE * dt
+        }
 
         const dxPlayer = player.x - b.x
         const dyPlayer = player.y - b.y
