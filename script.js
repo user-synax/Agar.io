@@ -8,7 +8,7 @@ const player = {
     y: 0,
     radius: 20,
     color: "#4cc9f0",
-    baseSpeed: 300
+    baseSpeed: 600
 }
 
 const mouse = {
@@ -23,7 +23,8 @@ const world = {
 
 const camera = {
     x: 0,
-    y: 0
+    y: 0,
+    zoom: 1
 }
 
 const food = []
@@ -71,6 +72,7 @@ window.addEventListener('mousemove', (e) => {
 })
 
 function updateCamera() {
+    camera.zoom = Math.max(0.5, 1 - (player.radius - 20) * 0.003)
     camera.x = player.x - canvas.width / 2
     camera.y = player.y - canvas.height / 2
 }
@@ -270,8 +272,12 @@ function drawBots() {
 
 function render() {
     scoreEl.textContent = 'Score: ' + score
+
     ctx.fillStyle = "#0d0d1a"
     ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+    ctx.save()
+    ctx.scale(camera.zoom, camera.zoom)
 
     ctx.fillStyle = "#1a1a2e"
     ctx.fillRect(0 - camera.x, 0 - camera.y, world.width, world.height)
@@ -285,6 +291,8 @@ function render() {
     ctx.arc(player.x - camera.x, player.y - camera.y, player.radius, 0, Math.PI * 2)
     ctx.fillStyle = player.color
     ctx.fill()
+
+    ctx.restore()
 }
 
 
