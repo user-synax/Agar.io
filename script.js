@@ -33,6 +33,25 @@ const camera = {
     zoom: 1
 }
 
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+
+function playTone(frequency, duration, type = 'sine', volume = 0.15) {
+    const oscillator = audioCtx.createOscillator()
+    const gainNode = audioCtx.createGain()
+
+    oscillator.type = type
+    oscillator.frequency.value = frequency
+
+    gainNode.gain.value = volume
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration)
+
+    oscillator.connect(gainNode)
+    gainNode.connect(audioCtx.destination)
+
+    oscillator.start()
+    oscillator.stop(audioCtx.currentTime + duration)
+}
+
 const food = []
 const FOOD_COUNT = 200
 
@@ -162,6 +181,7 @@ function checkFoodCollision() {
             player.radius += 0.2
             score += 10
             food.push(spawnFood())
+            playTone(600, 0.1, 'sine', 0.1)
         }
     }
 }
@@ -211,8 +231,9 @@ function checkPlayerBotCollision() {
                 score += Math.floor(b.radius * 5)
                 bots.splice(i, 1)
                 bots.push(spawnBot())
+                playTone(300, 0.25, 'sawtooth', 0.15)
             } else if (b.radius > player.radius * 1.1) {
-                console.log('Killed by bot:', b.radius, 'player was:', player.radius, 'distance:', distance)
+                playTone(150, 0.6, 'sawtooth', 0.2)
                 gameOver = true
                 finalScoreEl.textContent = 'Score: ' + score
                 deathScreenEl.classList.remove('hidden')
