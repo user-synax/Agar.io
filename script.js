@@ -101,11 +101,21 @@ function update(dt) {
     updateCamera()
 }
 
+function drawWorldBorder() {
+    ctx.strokeStyle = '#e63946'
+    ctx.lineWidth = 4
+    ctx.strokeRect(0 - camera.x, 0 - camera.y, world.width, world.height)
+}
+
 function render() {
-    ctx.fillStyle = "#1a1a2e"
+    ctx.fillStyle = "#0d0d1a"
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
+    ctx.fillStyle = "#1a1a2e"
+    ctx.fillRect(0 - camera.x, 0 - camera.y, world.width, world.y)
+
     drawGrid()
+    drawWorldBorder()
 
     ctx.beginPath()
     ctx.arc(player.x - camera.x, player.y - camera.y, player.radius, 0, Math.PI * 2)
