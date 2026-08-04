@@ -56,7 +56,7 @@ const food = []
 const FOOD_COUNT = 200
 
 const bots = []
-const BOT_COUNT = 8
+const BOT_COUNT = 30
 
 
 function spawnBot() {
