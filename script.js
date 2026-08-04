@@ -18,10 +18,13 @@ const player = {
     baseSpeed: 600
 }
 
+const PLAYER_NORMAL_COLOR = '#4cc9f0'
+const PLAYER_KING_COLOR = '#ffd700'
+
 let isDashing = false
 let dashCooldownTimer = 0
 const DASH_DURATION = 1
-const DASH_COOLDOWN = 1.5
+const DASH_COOLDOWN = 5
 const DASH_MULTIPLIER = 4
 const DASH_COST = 2
 
@@ -102,12 +105,19 @@ function updateLeaderboard() {
 
     entries.sort((a, b) => b.radius - a.radius)
 
+    if (entries[0].isPlayer) {
+        player.color = PLAYER_KING_COLOR
+    } else {
+        player.color = PLAYER_NORMAL_COLOR
+    }
+
     const top5 = entries.slice(0, 5)
 
     let html = '<h3>Leaderboard</h3>'
     top5.forEach((e, i) => {
         const cls = e.isPlayer ? 'you' : ''
-        html += `<div class="${cls}">${i + 1}. ${e.name} - ${Math.floor(e.radius)}</div>`
+        const crown = i === 0 ? ' 👑' : ''
+        html += `<div class="${cls}">${i + 1}. ${e.name} - ${Math.floor(e.radius)}${crown}</div>`
     })
 
     leaderboardEl.innerHTML = html
