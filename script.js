@@ -6,6 +6,7 @@ const finalScoreEl = document.getElementById('finalScore')
 const restartBtn = document.getElementById('restartBtn')
 const leaderboardEl = document.getElementById('leaderboard')
 const dashStatusEl = document.getElementById('dashStatus')
+const dangerOverlayEl = document.getElementById('dangerOverlay')
 
 let score = 0
 let gameOver = false
@@ -99,6 +100,32 @@ function spawnBot() {
         targetFood: null
     }
 }
+
+function updateDangerOverlay() {
+    let closestThreatDist = Infinity
+
+    for (const b of bots) {
+        if (b.radius > player.radius * 1.1) {
+            const dx = b.x - player.x
+            const dy = b.y - player.y
+            const dist = Math.sqrt(dx * dx + dy * dy) - player.radius - b.radius
+
+            if (dist < closestThreatDist) {
+                closestThreatDist = dist
+            }
+        }
+    }
+
+    const DANGER_RANGE = 300
+
+    if (closestThreatDist < DANGER_RANGE) {
+        const intensity = 1 - Math.max(0, closestThreatDist) / DANGER_RANGE
+        dangerOverlayEl.style.boxShadow = `inset 0 0 150px rgba(255, 0, 0, ${intensity * 0.6})`
+    } else {
+        dangerOverlayEl.style.boxShadow = 'inset 0 0 150px rgba(255, 0, 0, 0)'
+    }
+}
+
 function updateLeaderboard() {
     const entries = bots.map(b => ({ name: 'Bot', radius: b.radius, isPlayer: false }))
     entries.push({ name: 'You', radius: player.radius, isPlayer: true })
@@ -387,6 +414,7 @@ function render() {
         ? 'Dash: ' + dashCooldownTimer.toFixed(1) + 's'
         : 'Dash: Ready (Shift)'
     updateLeaderboard()
+    updateDangerOverlay()
 
 
     ctx.fillStyle = "#0d0d1a"
