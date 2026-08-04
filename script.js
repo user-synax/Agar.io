@@ -15,13 +15,17 @@ const lobbyHighScoreEl = document.getElementById('lobbyHighScore')
 const lobbyGamesPlayedEl = document.getElementById('lobbyGamesPlayed')
 const skinGridEl = document.getElementById('skinGrid')
 const playBtn = document.getElementById('playBtn')
+const nicknameInputEl = document.getElementById('nicknameInput')
 
+let playerData = loadPlayerData()
+if (!playerData.nickname) playerData.nickname = 'Player'
 function loadPlayerData() {
     const saved = localStorage.getItem('blobio_playerData')
     if (saved) {
         return JSON.parse(saved)
     }
     return {
+        nickname: 'Player',
         totalCoins: 0,
         highScore: 0,
         gamesPlayed: 0,
@@ -29,6 +33,7 @@ function loadPlayerData() {
         selectedSkin: 'default'
     }
 }
+
 
 const SKINS = {
     default: {
@@ -141,13 +146,19 @@ function updateLobbyStats() {
     lobbyCoinsEl.textContent = playerData.totalCoins
     lobbyHighScoreEl.textContent = playerData.highScore
     lobbyGamesPlayedEl.textContent = playerData.gamesPlayed
+    nicknameInputEl.value = playerData.nickname
 }
+
+nicknameInputEl.addEventListener('input', () => {
+    const trimmed = nicknameInputEl.value.trim()
+    playerData.nickname = trimmed.length > 0 ? trimmed : 'Player'
+    savePlayerData()
+})
 
 function savePlayerData() {
     localStorage.setItem('blobio_playerData', JSON.stringify(playerData))
 }
 
-let playerData = loadPlayerData()
 
 
 let score = 0
@@ -208,7 +219,7 @@ const camera = {
 }
 
 const coins = []
-const COIN_COUNT = 30
+const COIN_COUNT = 45
 
 
 function spawnCoin() {
@@ -439,7 +450,7 @@ function updateDangerOverlay() {
 
 function updateLeaderboard() {
     const entries = bots.map(b => ({ name: b.name, radius: b.radius, isPlayer: false }))
-    entries.push({ name: 'You', radius: player.radius, isPlayer: true })
+    entries.push({ name: playerData.nickname, radius: player.radius, isPlayer: true })
 
     entries.sort((a, b) => b.radius - a.radius)
 
