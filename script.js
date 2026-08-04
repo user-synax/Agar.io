@@ -54,8 +54,8 @@ const mouse = {
 }
 
 const world = {
-    width: 3000,
-    height: 3000
+    width: 5000,
+    height: 5000
 }
 
 const camera = {
@@ -94,7 +94,7 @@ function spawnBot() {
     return {
         x: Math.random() * world.width,
         y: Math.random() * world.height,
-        radius: 15 + Math.random() * 10,
+        radius: 15 + Math.random() * 80,
         color: '#e76f51',
         baseSpeed: 400,
         targetFood: null
@@ -157,11 +157,28 @@ function initBots() {
 }
 
 function spawnFood() {
+    const isRare = Math.random() < 0.05 // 5% chance rare hone ka
+
+    if (isRare) {
+        return {
+            x: Math.random() * world.width,
+            y: Math.random() * world.height,
+            radius: 12,
+            color: '#b565f0',
+            growth: 2,
+            scoreValue: 50,
+            isRare: true
+        }
+    }
+
     return {
         x: Math.random() * world.width,
         y: Math.random() * world.height,
         radius: 5,
-        color: "#f4a261"
+        color: "#f4a261",
+        growth: 0.2,
+        scoreValue: 10,
+        isRare: false
     }
 }
 
@@ -242,10 +259,10 @@ function checkFoodCollision() {
 
         if (distance < player.radius + f.radius) {
             food.splice(i, 1)
-            player.radius += 0.2
-            score += 10
+            player.radius += f.growth
+            score += f.scoreValue
             food.push(spawnFood())
-            playTone(600, 0.1, 'sine', 0.1)
+            playTone(f.isRare ? 900 : 600, f.isRare ? 0.2 : 0.1, 'sine', f.isRare ? 0.15 : 0.1)
         }
     }
 }
@@ -325,7 +342,7 @@ function checkBotFoodCollision() {
 
             if (distance < b.radius + f.radius) {
                 food.splice(i, 1)
-                b.radius += 0.15
+                b.radius += f.growth
                 food.push(spawnFood())
             }
         }
@@ -389,14 +406,54 @@ function drawWorldBorder() {
     ctx.lineWidth = 4
     ctx.strokeRect(0 - camera.x, 0 - camera.y, world.width, world.height)
 }
-
 function drawFood() {
     for (const f of food) {
-        ctx.beginPath()
-        ctx.arc(f.x - camera.x, f.y - camera.y, f.radius, 0, Math.PI * 2)
-        ctx.fillStyle = f.color
-        ctx.fill()
+        const screenX = f.x - camera.x
+        const screenY = f.y - camera.y
+
+        if (f.isRare) {
+            drawStar(screenX, screenY, f.radius, f.color)
+        } else {
+            ctx.beginPath()
+            ctx.arc(screenX, screenY, f.radius, 0, Math.PI * 2)
+            ctx.fillStyle = f.color
+            ctx.fill()
+        }
     }
+}
+
+function drawStar(cx, cy, radius, color) {
+    const spikes = 5
+    const outerRadius = radius
+    const innerRadius = radius * 0.5
+    let rot = (Math.PI / 2) * 3
+    const step = Math.PI / spikes
+
+    ctx.beginPath()
+    ctx.moveTo(cx, cy - outerRadius)
+
+    for (let i = 0; i < spikes; i++) {
+        let x = cx + Math.cos(rot) * outerRadius
+        let y = cy + Math.sin(rot) * outerRadius
+        ctx.lineTo(x, y)
+        rot += step
+
+        x = cx + Math.cos(rot) * innerRadius
+        y = cy + Math.sin(rot) * innerRadius
+        ctx.lineTo(x, y)
+        rot += step
+    }
+
+    ctx.lineTo(cx, cy - outerRadius)
+    ctx.closePath()
+    ctx.fillStyle = color
+    ctx.fill()
+
+    // halka glow effect star ko highlight karne ke liye
+    ctx.shadowColor = color
+    ctx.shadowBlur = 15
+    ctx.fill()
+    ctx.shadowBlur = 0
 }
 
 function drawBots() {
