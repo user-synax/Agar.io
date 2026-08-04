@@ -7,8 +7,10 @@ const restartBtn = document.getElementById('restartBtn')
 const leaderboardEl = document.getElementById('leaderboard')
 const dashStatusEl = document.getElementById('dashStatus')
 const dangerOverlayEl = document.getElementById('dangerOverlay')
+const highScoreEl = document.getElementById('highScore')
 
 let score = 0
+let highScore = parseInt(localStorage.getItem('blobio_highscore')) || 0
 let gameOver = false
 
 const player = {
@@ -467,6 +469,13 @@ function drawBots() {
 
 function render() {
     scoreEl.textContent = 'Score: ' + score
+
+    if (score > highScore) {
+        highScore = score
+        localStorage.setItem('blobio_highscore', highScore)
+    }
+    highScoreEl.textContent = 'Best: ' + highScore
+
     dashStatusEl.textContent = dashCooldownTimer > 0
         ? 'Dash: ' + dashCooldownTimer.toFixed(1) + 's'
         : 'Dash: Ready (Shift)'
