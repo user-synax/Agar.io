@@ -16,6 +16,7 @@ const lobbyGamesPlayedEl = document.getElementById('lobbyGamesPlayed')
 const skinGridEl = document.getElementById('skinGrid')
 const playBtn = document.getElementById('playBtn')
 const nicknameInputEl = document.getElementById('nicknameInput')
+const splitStatusEl = document.getElementById('splitStatus')
 
 let playerData = loadPlayerData()
 if (!playerData.nickname) playerData.nickname = 'Player'
@@ -931,7 +932,13 @@ function render() {
     updateLeaderboard()
     updateDangerOverlay()
 
-
+    if (player.cells.length >= 2) {
+        splitStatusEl.textContent = 'Split: Merging...'
+    } else if (player.cells[0].radius < MIN_SPLIT_RADIUS) {
+        splitStatusEl.textContent = 'Split: Need size ' + MIN_SPLIT_RADIUS
+    } else {
+        splitStatusEl.textContent = 'Split: Ready (Space)'
+    }
     ctx.fillStyle = "#0d0d1a"
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
