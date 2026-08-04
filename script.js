@@ -103,6 +103,21 @@ function drawGrid() {
     }
 }
 
+function checkFoodCollision() {
+    for (let i = food.length - 1; i >= 0; i--) {
+        const f = food[i]
+        const dx = player.x - f.x
+        const dy = player.y - f.y
+        const distance = Math.sqrt(dx * dx + dy * dy)
+
+        if (distance < player.radius + f.radius) {
+            food.splice(i, 1)
+            player.radius += 0.2
+            food.push(spawnFood())
+        }
+    }
+}
+
 function update(dt) {
     const mouseWorldX = mouse.x + camera.x
     const mouseWorldY = mouse.y + camera.y
@@ -121,7 +136,7 @@ function update(dt) {
 
     player.x = Math.max(player.radius, Math.min(world.width - player.radius, player.x))
     player.y = Math.max(player.radius, Math.min(world.height - player.radius, player.y))
-
+    checkFoodCollision()
     updateCamera()
 }
 
