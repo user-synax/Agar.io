@@ -1,7 +1,12 @@
 const canvas = document.getElementById('gameCanvas')
 const ctx = canvas.getContext('2d')
 const scoreEl = document.getElementById('score')
+const deathScreenEl = document.getElementById('deathScreen')
+const finalScoreEl = document.getElementById('finalScore')
+const restartBtn = document.getElementById('restartBtn')
+
 let score = 0
+let gameOver = false
 
 const player = {
     x: 0,
@@ -73,8 +78,8 @@ window.addEventListener('mousemove', (e) => {
 
 function updateCamera() {
     camera.zoom = Math.max(0.5, 1 - (player.radius - 20) * 0.003)
-    camera.x = player.x - canvas.width / 2
-    camera.y = player.y - canvas.height / 2
+    camera.x = player.x - (canvas.width / camera.zoom) / 2
+    camera.y = player.y - (canvas.height / camera.zoom) / 2
 }
 
 function resizeCanvas() {
@@ -144,7 +149,12 @@ function checkFoodCollision() {
     }
 }
 
+restartBtn.addEventListener('click', () => {
+    location.reload()
+})
+
 function update(dt) {
+    if (gameOver) return
     const mouseWorldX = mouse.x + camera.x
     const mouseWorldY = mouse.y + camera.y
 
@@ -180,15 +190,16 @@ function checkPlayerBotCollision() {
 
         if (distance < player.radius + b.radius) {
             if (player.radius > b.radius * 1.1) {
-                // player bot ko khata hai
                 player.radius += b.radius * 0.3
                 score += Math.floor(b.radius * 5)
                 bots.splice(i, 1)
                 bots.push(spawnBot())
             } else if (b.radius > player.radius * 1.1) {
-                // bot player ko khata hai, game over
-                alert('Game Over! Score: ' + score)
-                location.reload()
+                console.log('Killed by bot:', b.radius, 'player was:', player.radius, 'distance:', distance)
+                gameOver = true
+                finalScoreEl.textContent = 'Score: ' + score
+                deathScreenEl.classList.remove('hidden')
+
             }
         }
     }
