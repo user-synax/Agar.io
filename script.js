@@ -45,7 +45,7 @@ function spawnBot() {
         y: Math.random() * world.height,
         radius: 15 + Math.random() * 10,
         color: '#e76f51',
-        baseSpeed: 150,
+        baseSpeed: 400,
         targetFood: null
     }
 }
@@ -224,24 +224,41 @@ function checkBotFoodCollision() {
 
 function updateBots(dt) {
     for (const b of bots) {
-        let nearestFood = null
-        let nearestDist = Infinity
+        let targetX, targetY
 
-        for (const f of food) {
-            const dx = f.x - b.x
-            const dy = f.y - b.y
-            const dist = Math.sqrt(dx * dx + dy * dy)
-            if (dist < nearestDist) {
-                nearestDist = dist
-                nearestFood = f
+        const dxPlayer = player.x - b.x
+        const dyPlayer = player.y - b.y
+        const distToPlayer = Math.sqrt(dxPlayer * dxPlayer + dyPlayer * dyPlayer)
+
+        // agar bot player se kaafi bada hai aur paas hai, to chase karo
+        if (b.radius > player.radius * 1.15 && distToPlayer < 400) {
+            targetX = player.x
+            targetY = player.y
+        } else {
+            // warna nearest food dhoondo (purana logic)
+            let nearestFood = null
+            let nearestDist = Infinity
+
+            for (const f of food) {
+                const dx = f.x - b.x
+                const dy = f.y - b.y
+                const dist = Math.sqrt(dx * dx + dy * dy)
+                if (dist < nearestDist) {
+                    nearestDist = dist
+                    nearestFood = f
+                }
+            }
+
+            if (nearestFood) {
+                targetX = nearestFood.x
+                targetY = nearestFood.y
             }
         }
 
-        if (nearestFood) {
-            const dx = nearestFood.x - b.x
-            const dy = nearestFood.y - b.y
+        if (targetX !== undefined) {
+            const dx = targetX - b.x
+            const dy = targetY - b.y
             const dist = Math.sqrt(dx * dx + dy * dy)
-
             const currentSpeed = b.baseSpeed / (b.radius * 0.05 + 1)
 
             if (dist > 1) {
