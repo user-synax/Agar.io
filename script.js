@@ -5,6 +5,7 @@ const deathScreenEl = document.getElementById('deathScreen')
 const finalScoreEl = document.getElementById('finalScore')
 const restartBtn = document.getElementById('restartBtn')
 const leaderboardEl = document.getElementById('leaderboard')
+const dashStatusEl = document.getElementById('dashStatus')
 
 let score = 0
 let gameOver = false
@@ -15,6 +16,32 @@ const player = {
     radius: 20,
     color: "#4cc9f0",
     baseSpeed: 600
+}
+
+let isDashing = false
+let dashCooldownTimer = 0
+const DASH_DURATION = 1
+const DASH_COOLDOWN = 1.5
+const DASH_MULTIPLIER = 4
+const DASH_COST = 2
+
+window.addEventListener('keydown', (e) => {
+    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+        triggerDash()
+    }
+})
+
+function triggerDash() {
+    if (dashCooldownTimer <= 0 && player.radius > 15 && !gameOver) {
+        isDashing = true
+        dashCooldownTimer = DASH_COOLDOWN
+        player.radius -= DASH_COST
+        playTone(800, 0.15, 'square', 0.12)
+
+        setTimeout(() => {
+            isDashing = false
+        }, DASH_DURATION * 1000)
+    }
 }
 
 const mouse = {
@@ -192,6 +219,11 @@ restartBtn.addEventListener('click', () => {
 
 function update(dt) {
     if (gameOver) return
+
+    if (dashCooldownTimer > 0) {
+        dashCooldownTimer -= dt
+    }
+
     const mouseWorldX = mouse.x + camera.x
     const mouseWorldY = mouse.y + camera.y
 
@@ -199,7 +231,10 @@ function update(dt) {
     const dy = mouseWorldY - player.y
     const distance = Math.sqrt(dx * dx + dy * dy)
 
-    const currentSpeed = player.baseSpeed / (player.radius * 0.05 + 1)
+    let currentSpeed = player.baseSpeed / (player.radius * 0.05 + 1)
+    if (isDashing) {
+        currentSpeed *= DASH_MULTIPLIER
+    }
 
     if (distance > 1) {
         const dirX = dx / distance
@@ -338,6 +373,9 @@ function drawBots() {
 
 function render() {
     scoreEl.textContent = 'Score: ' + score
+    dashStatusEl.textContent = dashCooldownTimer > 0
+        ? 'Dash: ' + dashCooldownTimer.toFixed(1) + 's'
+        : 'Dash: Ready (Shift)'
     updateLeaderboard()
 
 
