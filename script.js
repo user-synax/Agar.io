@@ -173,8 +173,13 @@ const player = {
     y: 0,
     radius: 20,
     color: "#4cc9f0",
-    baseSpeed: 600
+    baseSpeed: 600,
+    cells: []
 }
+
+const MIN_SPLIT_RADIUS = 40
+const MERGE_COOLDOWN = 12
+const SPLIT_BOOST = 800
 
 const PLAYER_NORMAL_COLOR = '#4cc9f0'
 const PLAYER_KING_COLOR = '#ffd700'
@@ -185,12 +190,6 @@ const DASH_DURATION = 1
 const DASH_COOLDOWN = 5
 const DASH_MULTIPLIER = 4
 const DASH_COST = 2
-
-window.addEventListener('keydown', (e) => {
-    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
-        triggerDash()
-    }
-})
 
 function triggerDash() {
     if (dashCooldownTimer <= 0 && player.radius > 15 && !gameOver) {
@@ -243,19 +242,21 @@ function initCoins() {
 let sessionCoins = 0
 
 function checkCoinCollision() {
-    for (let i = coins.length - 1; i >= 0; i--) {
-        const c = coins[i]
-        const dx = player.x - c.x
-        const dy = player.y - c.y
-        const distance = Math.sqrt(dx * dx + dy * dy)
+    for (const cell of player.cells) {
+        for (let i = coins.length - 1; i >= 0; i--) {
+            const c = coins[i]
+            const dx = cell.x - c.x
+            const dy = cell.y - c.y
+            const distance = Math.sqrt(dx * dx + dy * dy)
 
-        if (distance < player.radius + c.radius) {
-            coins.splice(i, 1)
-            sessionCoins += c.value
-            playerData.totalCoins += c.value
-            savePlayerData()
-            coins.push(spawnCoin())
-            playTone(1000, 0.08, 'triangle', 0.12)
+            if (distance < cell.radius + c.radius) {
+                coins.splice(i, 1)
+                sessionCoins += c.value
+                playerData.totalCoins += c.value
+                savePlayerData()
+                coins.push(spawnCoin())
+                playTone(1000, 0.08, 'triangle', 0.12)
+            }
         }
     }
 }
@@ -276,19 +277,26 @@ function drawCoins() {
 }
 
 function drawPlayer() {
-    const screenX = player.x - camera.x
-    const screenY = player.y - camera.y
+    for (const cell of player.cells) {
+        drawPlayerCell(cell)
+    }
+}
+
+function drawPlayerCell(cell) {
+    const screenX = cell.x - camera.x
+    const screenY = cell.y - camera.y
+    const radius = cell.radius
     const skin = SKINS[playerData.selectedSkin]
 
     if (skin.type === 'solid') {
         ctx.beginPath()
-        ctx.arc(screenX, screenY, player.radius, 0, Math.PI * 2)
+        ctx.arc(screenX, screenY, radius, 0, Math.PI * 2)
         ctx.fillStyle = player.color
         ctx.fill()
 
     } else if (skin.type === 'glow') {
         ctx.beginPath()
-        ctx.arc(screenX, screenY, player.radius, 0, Math.PI * 2)
+        ctx.arc(screenX, screenY, radius, 0, Math.PI * 2)
         ctx.fillStyle = player.color
         ctx.fill()
 
@@ -299,44 +307,44 @@ function drawPlayer() {
 
     } else if (skin.type === 'watermelon') {
         ctx.beginPath()
-        ctx.arc(screenX, screenY, player.radius, 0, Math.PI * 2)
+        ctx.arc(screenX, screenY, radius, 0, Math.PI * 2)
         ctx.fillStyle = '#2d6a4f'
         ctx.fill()
 
         ctx.beginPath()
-        ctx.arc(screenX, screenY, player.radius * 0.75, 0, Math.PI * 2)
+        ctx.arc(screenX, screenY, radius * 0.75, 0, Math.PI * 2)
         ctx.fillStyle = '#ff4d4d'
         ctx.fill()
 
         ctx.strokeStyle = '#1b4332'
-        ctx.lineWidth = player.radius * 0.15
+        ctx.lineWidth = radius * 0.15
         for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
             ctx.beginPath()
             ctx.moveTo(screenX, screenY)
-            ctx.lineTo(screenX + Math.cos(a) * player.radius, screenY + Math.sin(a) * player.radius)
+            ctx.lineTo(screenX + Math.cos(a) * radius, screenY + Math.sin(a) * radius)
             ctx.stroke()
         }
 
         ctx.fillStyle = '#1b1b1b'
         for (let i = 0; i < 6; i++) {
             const a = (i / 6) * Math.PI * 2
-            const sx = screenX + Math.cos(a) * player.radius * 0.4
-            const sy = screenY + Math.sin(a) * player.radius * 0.4
+            const sx = screenX + Math.cos(a) * radius * 0.4
+            const sy = screenY + Math.sin(a) * radius * 0.4
             ctx.beginPath()
-            ctx.arc(sx, sy, player.radius * 0.06, 0, Math.PI * 2)
+            ctx.arc(sx, sy, radius * 0.06, 0, Math.PI * 2)
             ctx.fill()
         }
 
     } else if (skin.type === 'lemon') {
         ctx.beginPath()
-        ctx.arc(screenX, screenY, player.radius, 0, Math.PI * 2)
+        ctx.arc(screenX, screenY, radius, 0, Math.PI * 2)
         ctx.fillStyle = '#fff44f'
         ctx.fill()
 
         ctx.fillStyle = '#e6d200'
         for (let i = 0; i < 10; i++) {
             const a = Math.random() * Math.PI * 2
-            const r = Math.random() * player.radius * 0.8
+            const r = Math.random() * radius * 0.8
             const dx = screenX + Math.cos(a) * r
             const dy = screenY + Math.sin(a) * r
             ctx.beginPath()
@@ -346,25 +354,24 @@ function drawPlayer() {
     } else if (skin.type === 'flagIndia') {
         ctx.save()
         ctx.beginPath()
-        ctx.arc(screenX, screenY, player.radius, 0, Math.PI * 2)
+        ctx.arc(screenX, screenY, radius, 0, Math.PI * 2)
         ctx.clip()
 
-        const top = screenY - player.radius
-        const stripeHeight = (player.radius * 2) / 3
+        const top = screenY - radius
+        const stripeHeight = (radius * 2) / 3
 
         ctx.fillStyle = '#FF9933'
-        ctx.fillRect(screenX - player.radius, top, player.radius * 2, stripeHeight)
+        ctx.fillRect(screenX - radius, top, radius * 2, stripeHeight)
 
         ctx.fillStyle = '#FFFFFF'
-        ctx.fillRect(screenX - player.radius, top + stripeHeight, player.radius * 2, stripeHeight)
+        ctx.fillRect(screenX - radius, top + stripeHeight, radius * 2, stripeHeight)
 
         ctx.fillStyle = '#138808'
-        ctx.fillRect(screenX - player.radius, top + stripeHeight * 2, player.radius * 2, stripeHeight)
+        ctx.fillRect(screenX - radius, top + stripeHeight * 2, radius * 2, stripeHeight)
 
-        // Ashoka Chakra
-        const chakraRadius = player.radius * 0.22
+        const chakraRadius = radius * 0.22
         ctx.strokeStyle = '#000080'
-        ctx.lineWidth = Math.max(1, player.radius * 0.03)
+        ctx.lineWidth = Math.max(1, radius * 0.03)
         ctx.beginPath()
         ctx.arc(screenX, screenY, chakraRadius, 0, Math.PI * 2)
         ctx.stroke()
@@ -379,9 +386,8 @@ function drawPlayer() {
 
         ctx.restore()
 
-        // outer border, taaki edges crisp dikhein
         ctx.beginPath()
-        ctx.arc(screenX, screenY, player.radius, 0, Math.PI * 2)
+        ctx.arc(screenX, screenY, radius, 0, Math.PI * 2)
         ctx.strokeStyle = 'rgba(0,0,0,0.3)'
         ctx.lineWidth = 1.5
         ctx.stroke()
@@ -534,6 +540,50 @@ window.addEventListener('resize', resizeCanvas)
 
 player.x = world.width / 2
 player.y = world.height / 2
+player.cells = [
+    { x: player.x, y: player.y, radius: player.radius, vx: 0, vy: 0, mergeTimer: 0 }
+]
+
+window.addEventListener('keydown', (e) => {
+    if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+        triggerDash()
+    }
+    if (e.code === 'Space') {
+        triggerSplit()
+    }
+})
+
+function triggerSplit() {
+    if (gameOver) return
+    if (player.cells.length >= 2) return // already split hai
+
+    const cell = player.cells[0]
+    if (cell.radius < MIN_SPLIT_RADIUS) return
+
+    const newRadius = cell.radius / Math.SQRT2
+
+    const mouseWorldX = mouse.x / camera.zoom + camera.x
+    const mouseWorldY = mouse.y / camera.zoom + camera.y
+    const dx = mouseWorldX - cell.x
+    const dy = mouseWorldY - cell.y
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1
+    const dirX = dx / dist
+    const dirY = dy / dist
+
+    cell.radius = newRadius
+    cell.mergeTimer = MERGE_COOLDOWN
+
+    player.cells.push({
+        x: cell.x,
+        y: cell.y,
+        radius: newRadius,
+        vx: dirX * SPLIT_BOOST,
+        vy: dirY * SPLIT_BOOST,
+        mergeTimer: MERGE_COOLDOWN
+    })
+
+    playTone(700, 0.15, 'square', 0.15)
+}
 
 mouse.x = canvas.width / 2
 mouse.y = canvas.height / 2
@@ -577,20 +627,21 @@ function drawGrid() {
         ctx.stroke()
     }
 }
-
 function checkFoodCollision() {
-    for (let i = food.length - 1; i >= 0; i--) {
-        const f = food[i]
-        const dx = player.x - f.x
-        const dy = player.y - f.y
-        const distance = Math.sqrt(dx * dx + dy * dy)
+    for (const cell of player.cells) {
+        for (let i = food.length - 1; i >= 0; i--) {
+            const f = food[i]
+            const dx = cell.x - f.x
+            const dy = cell.y - f.y
+            const distance = Math.sqrt(dx * dx + dy * dy)
 
-        if (distance < player.radius + f.radius) {
-            food.splice(i, 1)
-            player.radius += f.growth
-            score += f.scoreValue
-            food.push(spawnFood())
-            playTone(f.isRare ? 900 : 600, f.isRare ? 0.2 : 0.1, 'sine', f.isRare ? 0.15 : 0.1)
+            if (distance < cell.radius + f.radius) {
+                food.splice(i, 1)
+                cell.radius += f.growth
+                score += f.scoreValue
+                food.push(spawnFood())
+                playTone(f.isRare ? 900 : 600, f.isRare ? 0.2 : 0.1, 'sine', f.isRare ? 0.15 : 0.1)
+            }
         }
     }
 }
@@ -609,29 +660,43 @@ function update(dt) {
     const mouseWorldX = mouse.x / camera.zoom + camera.x
     const mouseWorldY = mouse.y / camera.zoom + camera.y
 
-    const dx = mouseWorldX - player.x
-    const dy = mouseWorldY - player.y
-    const distance = Math.sqrt(dx * dx + dy * dy)
+    for (const cell of player.cells) {
+        const dx = mouseWorldX - cell.x
+        const dy = mouseWorldY - cell.y
+        const distance = Math.sqrt(dx * dx + dy * dy)
 
-    let currentSpeed = player.baseSpeed / (player.radius * 0.02 + 1)
-    if (isDashing) {
-        currentSpeed *= DASH_MULTIPLIER
+        let currentSpeed = player.baseSpeed / (cell.radius * 0.02 + 1)
+        if (isDashing && player.cells.length === 1) {
+            currentSpeed *= DASH_MULTIPLIER
+        }
+
+        if (distance > 1) {
+            const dirX = dx / distance
+            const dirY = dy / distance
+            cell.x += dirX * currentSpeed * dt
+            cell.y += dirY * currentSpeed * dt
+        }
+
+        // impulse velocity (split boost) friction se kam hoti jaati hai
+        cell.x += cell.vx * dt
+        cell.y += cell.vy * dt
+        cell.vx *= 0.9
+        cell.vy *= 0.9
+
+        cell.x = Math.max(cell.radius, Math.min(world.width - cell.radius, cell.x))
+        cell.y = Math.max(cell.radius, Math.min(world.height - cell.radius, cell.y))
+
+        if (cell.radius > DECAY_THRESHOLD) {
+            cell.radius -= DECAY_RATE * dt
+        }
+
+        if (cell.mergeTimer > 0) {
+            cell.mergeTimer -= dt
+        }
     }
 
-    if (distance > 1) {
-        const dirX = dx / distance
-        const dirY = dy / distance
-
-        player.x += dirX * currentSpeed * dt
-        player.y += dirY * currentSpeed * dt
-    }
-
-    player.x = Math.max(player.radius, Math.min(world.width - player.radius, player.x))
-    player.y = Math.max(player.radius, Math.min(world.height - player.radius, player.y))
-
-    if (player.radius > DECAY_THRESHOLD) {
-        player.radius -= DECAY_RATE * dt
-    }
+    tryMergeCells()
+    syncPlayerAggregate()
 
     checkFoodCollision()
     checkCoinCollision()
@@ -641,26 +706,74 @@ function update(dt) {
     updateCamera()
 }
 
+function tryMergeCells() {
+    if (player.cells.length < 2) return
+
+    const [a, b] = player.cells
+    if (a.mergeTimer > 0 || b.mergeTimer > 0) return
+
+    const dx = a.x - b.x
+    const dy = a.y - b.y
+    const dist = Math.sqrt(dx * dx + dy * dy)
+
+    if (dist < a.radius + b.radius) {
+        const mergedRadius = Math.sqrt(a.radius * a.radius + b.radius * b.radius)
+        const mergedX = (a.x + b.x) / 2
+        const mergedY = (a.y + b.y) / 2
+
+        player.cells = [
+            { x: mergedX, y: mergedY, radius: mergedRadius, vx: 0, vy: 0, mergeTimer: 0 }
+        ]
+        playTone(500, 0.15, 'sine', 0.12)
+    }
+}
+
+function syncPlayerAggregate() {
+    let totalArea = 0
+    let sumX = 0
+    let sumY = 0
+
+    for (const cell of player.cells) {
+        totalArea += cell.radius * cell.radius
+        sumX += cell.x
+        sumY += cell.y
+    }
+
+    player.radius = Math.sqrt(totalArea)
+    player.x = sumX / player.cells.length
+    player.y = sumY / player.cells.length
+}
+
 function checkPlayerBotCollision() {
     for (let i = bots.length - 1; i >= 0; i--) {
         const b = bots[i]
-        const dx = player.x - b.x
-        const dy = player.y - b.y
-        const distance = Math.sqrt(dx * dx + dy * dy)
 
-        if (distance < player.radius + b.radius) {
-            if (player.radius > b.radius * 1.1) {
-                player.radius += b.radius * 0.3
-                score += Math.floor(b.radius * 5)
-                bots.splice(i, 1)
-                bots.push(spawnBot())
-                playTone(300, 0.25, 'sawtooth', 0.15)
-            } else if (b.radius > player.radius * 1.1) {
-                playTone(150, 0.6, 'sawtooth', 0.2)
-                gameOver = true
-                finalScoreEl.textContent = `Eaten by ${b.name} | Score: ${score}` + (score >= highScore ? ' (New Best!)' : '')
-                deathScreenEl.classList.remove('hidden')
+        for (let c = player.cells.length - 1; c >= 0; c--) {
+            const cell = player.cells[c]
+            const dx = cell.x - b.x
+            const dy = cell.y - b.y
+            const distance = Math.sqrt(dx * dx + dy * dy)
 
+            if (distance < cell.radius + b.radius) {
+                if (cell.radius > b.radius * 1.1) {
+                    cell.radius += b.radius * 0.3
+                    score += Math.floor(b.radius * 5)
+                    bots.splice(i, 1)
+                    bots.push(spawnBot())
+                    playTone(300, 0.25, 'sawtooth', 0.15)
+                    break
+                } else if (b.radius > cell.radius * 1.1) {
+                    playTone(200, 0.3, 'sawtooth', 0.15)
+                    player.cells.splice(c, 1)
+
+                    if (player.cells.length === 0) {
+                        playTone(150, 0.6, 'sawtooth', 0.2)
+                        gameOver = true
+                        finalScoreEl.textContent = `Eaten by ${b.name} | Score: ${score}` + (score >= highScore ? ' (New Best!)' : '')
+                        deathScreenEl.classList.remove('hidden')
+                    }
+                    break
+                }
             }
         }
     }
