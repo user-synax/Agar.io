@@ -8,7 +8,7 @@ const player = {
     y: 0,
     radius: 20,
     color: "#4cc9f0",
-    speed: 300
+    baseSpeed: 300
 }
 
 const mouse = {
@@ -39,7 +39,7 @@ function spawnBot() {
         y: Math.random() * world.height,
         radius: 15 + Math.random() * 10,
         color: '#e76f51',
-        speed: 150,
+        baseSpeed: 150,
         targetFood: null
     }
 }
@@ -150,12 +150,14 @@ function update(dt) {
     const dy = mouseWorldY - player.y
     const distance = Math.sqrt(dx * dx + dy * dy)
 
+    const currentSpeed = player.baseSpeed / (player.radius * 0.05 + 1)
+
     if (distance > 1) {
         const dirX = dx / distance
         const dirY = dy / distance
 
-        player.x += dirX * player.speed * dt
-        player.y += dirY * player.speed * dt
+        player.x += dirX * currentSpeed * dt
+        player.y += dirY * currentSpeed * dt
     }
 
     player.x = Math.max(player.radius, Math.min(world.width - player.radius, player.x))
@@ -163,7 +165,31 @@ function update(dt) {
     checkFoodCollision()
     updateBots(dt)
     checkBotFoodCollision()
+    checkPlayerBotCollision()
     updateCamera()
+}
+
+function checkPlayerBotCollision() {
+    for (let i = bots.length - 1; i >= 0; i--) {
+        const b = bots[i]
+        const dx = player.x - b.x
+        const dy = player.y - b.y
+        const distance = Math.sqrt(dx * dx + dy * dy)
+
+        if (distance < player.radius + b.radius) {
+            if (player.radius > b.radius * 1.1) {
+                // player bot ko khata hai
+                player.radius += b.radius * 0.3
+                score += Math.floor(b.radius * 5)
+                bots.splice(i, 1)
+                bots.push(spawnBot())
+            } else if (b.radius > player.radius * 1.1) {
+                // bot player ko khata hai, game over
+                alert('Game Over! Score: ' + score)
+                location.reload()
+            }
+        }
+    }
 }
 
 function checkBotFoodCollision() {
@@ -203,11 +229,13 @@ function updateBots(dt) {
             const dy = nearestFood.y - b.y
             const dist = Math.sqrt(dx * dx + dy * dy)
 
+            const currentSpeed = b.baseSpeed / (b.radius * 0.05 + 1)
+
             if (dist > 1) {
                 const dirX = dx / dist
                 const dirY = dy / dist
-                b.x += dirX * b.speed * dt
-                b.y += dirY * b.speed * dt
+                b.x += dirX * currentSpeed * dt
+                b.y += dirY * currentSpeed * dt
             }
         }
 
