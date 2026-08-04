@@ -29,6 +29,27 @@ const camera = {
 const food = []
 const FOOD_COUNT = 200
 
+const bots = []
+const BOT_COUNT = 8
+
+
+function spawnBot() {
+    return {
+        x: Math.random() * world.width,
+        y: Math.random() * world.height,
+        radius: 15 + Math.random() * 10,
+        color: '#e76f51',
+        speed: 150,
+        targetFood: null
+    }
+}
+
+function initBots() {
+    for (let i = 0; i < BOT_COUNT; i++) {
+        bots.push(spawnBot())
+    }
+}
+
 function spawnFood() {
     return {
         x: Math.random() * world.width,
@@ -140,7 +161,59 @@ function update(dt) {
     player.x = Math.max(player.radius, Math.min(world.width - player.radius, player.x))
     player.y = Math.max(player.radius, Math.min(world.height - player.radius, player.y))
     checkFoodCollision()
+    updateBots(dt)
+    checkBotFoodCollision()
     updateCamera()
+}
+
+function checkBotFoodCollision() {
+    for (const b of bots) {
+        for (let i = food.length - 1; i >= 0; i--) {
+            const f = food[i]
+            const dx = b.x - f.x
+            const dy = b.y - f.y
+            const distance = Math.sqrt(dx * dx + dy * dy)
+
+            if (distance < b.radius + f.radius) {
+                food.splice(i, 1)
+                b.radius += 0.15
+                food.push(spawnFood())
+            }
+        }
+    }
+}
+
+function updateBots(dt) {
+    for (const b of bots) {
+        let nearestFood = null
+        let nearestDist = Infinity
+
+        for (const f of food) {
+            const dx = f.x - b.x
+            const dy = f.y - b.y
+            const dist = Math.sqrt(dx * dx + dy * dy)
+            if (dist < nearestDist) {
+                nearestDist = dist
+                nearestFood = f
+            }
+        }
+
+        if (nearestFood) {
+            const dx = nearestFood.x - b.x
+            const dy = nearestFood.y - b.y
+            const dist = Math.sqrt(dx * dx + dy * dy)
+
+            if (dist > 1) {
+                const dirX = dx / dist
+                const dirY = dy / dist
+                b.x += dirX * b.speed * dt
+                b.y += dirY * b.speed * dt
+            }
+        }
+
+        b.x = Math.max(b.radius, Math.min(world.width - b.radius, b.x))
+        b.y = Math.max(b.radius, Math.min(world.height - b.radius, b.y))
+    }
 }
 
 function drawWorldBorder() {
@@ -158,6 +231,15 @@ function drawFood() {
     }
 }
 
+function drawBots() {
+    for (const b of bots) {
+        ctx.beginPath()
+        ctx.arc(b.x - camera.x, b.y - camera.y, b.radius, 0, Math.PI * 2)
+        ctx.fillStyle = b.color
+        ctx.fill()
+    }
+}
+
 function render() {
     scoreEl.textContent = 'Score: ' + score
     ctx.fillStyle = "#0d0d1a"
@@ -169,6 +251,7 @@ function render() {
     drawGrid()
     drawWorldBorder()
     drawFood()
+    drawBots()
 
     ctx.beginPath()
     ctx.arc(player.x - camera.x, player.y - camera.y, player.radius, 0, Math.PI * 2)
@@ -179,4 +262,5 @@ function render() {
 
 
 initFood()
+initBots()
 requestAnimationFrame(gameLoop)
