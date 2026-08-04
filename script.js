@@ -9,6 +9,13 @@ const dashStatusEl = document.getElementById('dashStatus')
 const dangerOverlayEl = document.getElementById('dangerOverlay')
 const highScoreEl = document.getElementById('highScore')
 
+const lobbyScreenEl = document.getElementById('lobbyScreen')
+const lobbyCoinsEl = document.getElementById('lobbyCoins')
+const lobbyHighScoreEl = document.getElementById('lobbyHighScore')
+const lobbyGamesPlayedEl = document.getElementById('lobbyGamesPlayed')
+const skinGridEl = document.getElementById('skinGrid')
+const playBtn = document.getElementById('playBtn')
+
 function loadPlayerData() {
     const saved = localStorage.getItem('blobio_playerData')
     if (saved) {
@@ -57,7 +64,71 @@ const SKINS = {
         name: 'Lemon',
         cost: 150,
         type: 'lemon'
+    },
+    flagIndia: {
+        name: 'India',
+        cost: 300,
+        type: 'flagIndia'
     }
+}
+
+function renderSkinGrid() {
+    let html = ''
+
+    for (const key in SKINS) {
+        const skin = SKINS[key]
+        const isUnlocked = playerData.unlockedSkins.includes(key)
+        const isSelected = playerData.selectedSkin === key
+
+        let previewStyle = ''
+        if (skin.type === 'watermelon') previewStyle = 'background: radial-gradient(circle, #ff4d4d 40%, #2d6a4f 41%)'
+        else if (skin.type === 'lemon') previewStyle = 'background: #fff44f'
+        else if (skin.type === 'flagIndia') previewStyle = 'background: linear-gradient(to bottom, #FF9933 33%, #FFFFFF 33% 66%, #138808 66%)'
+        else previewStyle = `background: ${skin.color}; ${skin.type === 'glow' ? `box-shadow: 0 0 15px ${skin.color}` : ''}`
+
+        html += `
+            <div class="skin-card ${isSelected ? 'selected' : ''} ${!isUnlocked ? 'locked' : ''}" data-skin="${key}">
+                <div class="skin-preview" style="${previewStyle}"></div>
+                <p>${skin.name}</p>
+                <p>${isUnlocked ? (isSelected ? 'Selected' : 'Owned') : skin.cost + ' coins'}</p>
+            </div>
+        `
+    }
+
+    skinGridEl.innerHTML = html
+
+    document.querySelectorAll('.skin-card').forEach(card => {
+        card.addEventListener('click', () => handleSkinClick(card.dataset.skin))
+    })
+}
+
+function handleSkinClick(key) {
+    const skin = SKINS[key]
+    const isUnlocked = playerData.unlockedSkins.includes(key)
+
+    if (isUnlocked) {
+        playerData.selectedSkin = key
+        savePlayerData()
+        renderSkinGrid()
+    } else {
+        if (playerData.totalCoins >= skin.cost) {
+            playerData.totalCoins -= skin.cost
+            playerData.unlockedSkins.push(key)
+            playerData.selectedSkin = key
+            savePlayerData()
+            renderSkinGrid()
+            updateLobbyStats()
+            playTone(1200, 0.15, 'sine', 0.15)
+        } else {
+            playTone(200, 0.2, 'square', 0.15)
+        }
+    }
+}
+
+function updateLobbyStats() {
+    lobbyCoinsEl.textContent = playerData.totalCoins
+    lobbyHighScoreEl.textContent = playerData.highScore
+    lobbyGamesPlayedEl.textContent = playerData.gamesPlayed
 }
 
 function savePlayerData() {
@@ -246,6 +317,48 @@ function drawPlayer() {
             ctx.arc(dx, dy, 1.5, 0, Math.PI * 2)
             ctx.fill()
         }
+    } else if (skin.type === 'flagIndia') {
+        ctx.save()
+        ctx.beginPath()
+        ctx.arc(screenX, screenY, player.radius, 0, Math.PI * 2)
+        ctx.clip()
+
+        const top = screenY - player.radius
+        const stripeHeight = (player.radius * 2) / 3
+
+        ctx.fillStyle = '#FF9933'
+        ctx.fillRect(screenX - player.radius, top, player.radius * 2, stripeHeight)
+
+        ctx.fillStyle = '#FFFFFF'
+        ctx.fillRect(screenX - player.radius, top + stripeHeight, player.radius * 2, stripeHeight)
+
+        ctx.fillStyle = '#138808'
+        ctx.fillRect(screenX - player.radius, top + stripeHeight * 2, player.radius * 2, stripeHeight)
+
+        // Ashoka Chakra
+        const chakraRadius = player.radius * 0.22
+        ctx.strokeStyle = '#000080'
+        ctx.lineWidth = Math.max(1, player.radius * 0.03)
+        ctx.beginPath()
+        ctx.arc(screenX, screenY, chakraRadius, 0, Math.PI * 2)
+        ctx.stroke()
+
+        for (let i = 0; i < 24; i++) {
+            const a = (i / 24) * Math.PI * 2
+            ctx.beginPath()
+            ctx.moveTo(screenX, screenY)
+            ctx.lineTo(screenX + Math.cos(a) * chakraRadius, screenY + Math.sin(a) * chakraRadius)
+            ctx.stroke()
+        }
+
+        ctx.restore()
+
+        // outer border, taaki edges crisp dikhein
+        ctx.beginPath()
+        ctx.arc(screenX, screenY, player.radius, 0, Math.PI * 2)
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)'
+        ctx.lineWidth = 1.5
+        ctx.stroke()
     }
 }
 
@@ -688,7 +801,21 @@ function render() {
 
 
 
-initFood()
 initCoins()
-initBots()
-requestAnimationFrame(gameLoop)
+updateLobbyStats()
+renderSkinGrid()
+
+playBtn.addEventListener('click', () => {
+    lobbyScreenEl.classList.add('hidden')
+    startGame()
+})
+
+function startGame() {
+    playerData.gamesPlayed++
+    savePlayerData()
+
+    initFood()
+    initCoins()
+    initBots()
+    requestAnimationFrame(gameLoop)
+}
