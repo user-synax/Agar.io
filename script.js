@@ -552,22 +552,25 @@ function gameLoop(currentTime) {
 function drawGrid() {
     const gridSize = 100
     ctx.strokeStyle = 'rgba(255,255,255,0.1)'
-    ctx.lineWidth = 1
+    ctx.lineWidth = 1 / camera.zoom
+
+    const viewWidth = canvas.width / camera.zoom
+    const viewHeight = canvas.height / camera.zoom
 
     const startX = -camera.x % gridSize
     const startY = -camera.y % gridSize
 
-    for (let x = startX; x < canvas.width; x += gridSize) {
+    for (let x = startX; x < viewWidth; x += gridSize) {
         ctx.beginPath()
         ctx.moveTo(x, 0)
-        ctx.lineTo(x, canvas.height)
+        ctx.lineTo(x, viewHeight)
         ctx.stroke()
     }
 
-    for (let y = startY; y < canvas.height; y += gridSize) {
+    for (let y = startY; y < viewHeight; y += gridSize) {
         ctx.beginPath()
         ctx.moveTo(0, y)
-        ctx.lineTo(canvas.width, y)
+        ctx.lineTo(viewWidth, y)
         ctx.stroke()
     }
 }
@@ -600,14 +603,14 @@ function update(dt) {
         dashCooldownTimer -= dt
     }
 
-    const mouseWorldX = mouse.x + camera.x
-    const mouseWorldY = mouse.y + camera.y
+    const mouseWorldX = mouse.x / camera.zoom + camera.x
+    const mouseWorldY = mouse.y / camera.zoom + camera.y
 
     const dx = mouseWorldX - player.x
     const dy = mouseWorldY - player.y
     const distance = Math.sqrt(dx * dx + dy * dy)
 
-    let currentSpeed = player.baseSpeed / (player.radius * 0.05 + 1)
+    let currentSpeed = player.baseSpeed / (player.radius * 0.02 + 1)
     if (isDashing) {
         currentSpeed *= DASH_MULTIPLIER
     }
