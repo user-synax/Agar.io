@@ -72,6 +72,18 @@ const SKINS = {
     }
 }
 
+const BOT_NAMES = [
+    'Rex', 'Nova', 'Blaze', 'Zuko', 'Vortex', 'Echo', 'Titan', 'Luna',
+    'Ghost', 'Raptor', 'Comet', 'Shadow', 'Viper', 'Bolt', 'Storm',
+    'Frost', 'Ember', 'Rogue', 'Drift', 'Onyx'
+]
+
+function generateBotName() {
+    const base = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)]
+    const useNumber = Math.random() < 0.4
+    return useNumber ? base + '_' + Math.floor(Math.random() * 99) : base
+}
+
 function renderSkinGrid() {
     let html = ''
 
@@ -395,7 +407,8 @@ function spawnBot() {
         radius: 15 + Math.random() * 80,
         color: '#e76f51',
         baseSpeed: 400,
-        targetFood: null
+        targetFood: null,
+        name: generateBotName()
     }
 }
 
@@ -425,7 +438,7 @@ function updateDangerOverlay() {
 }
 
 function updateLeaderboard() {
-    const entries = bots.map(b => ({ name: 'Bot', radius: b.radius, isPlayer: false }))
+    const entries = bots.map(b => ({ name: b.name, radius: b.radius, isPlayer: false }))
     entries.push({ name: 'You', radius: player.radius, isPlayer: true })
 
     entries.sort((a, b) => b.radius - a.radius)
@@ -623,7 +636,7 @@ function checkPlayerBotCollision() {
             } else if (b.radius > player.radius * 1.1) {
                 playTone(150, 0.6, 'sawtooth', 0.2)
                 gameOver = true
-                finalScoreEl.textContent = 'Score: ' + score
+                finalScoreEl.textContent = `Eaten by ${b.name} | Score: ${score}` + (score >= highScore ? ' (New Best!)' : '')
                 deathScreenEl.classList.remove('hidden')
 
             }
