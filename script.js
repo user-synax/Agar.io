@@ -23,6 +23,43 @@ function loadPlayerData() {
     }
 }
 
+const SKINS = {
+    default: {
+        name: 'Default',
+        cost: 0,
+        type: 'solid',
+        color: '#4cc9f0'
+    },
+    glowRed: {
+        name: 'Ruby Glow',
+        cost: 50,
+        type: 'glow',
+        color: '#ff4d4d'
+    },
+    glowPurple: {
+        name: 'Amethyst Glow',
+        cost: 50,
+        type: 'glow',
+        color: '#b565f0'
+    },
+    glowGreen: {
+        name: 'Emerald Glow',
+        cost: 50,
+        type: 'glow',
+        color: '#39ff88'
+    },
+    watermelon: {
+        name: 'Watermelon',
+        cost: 150,
+        type: 'watermelon'
+    },
+    lemon: {
+        name: 'Lemon',
+        cost: 150,
+        type: 'lemon'
+    }
+}
+
 function savePlayerData() {
     localStorage.setItem('blobio_playerData', JSON.stringify(playerData))
 }
@@ -138,6 +175,77 @@ function drawCoins() {
         ctx.strokeStyle = '#b8860b'
         ctx.lineWidth = 2
         ctx.stroke()
+    }
+}
+
+function drawPlayer() {
+    const screenX = player.x - camera.x
+    const screenY = player.y - camera.y
+    const skin = SKINS[playerData.selectedSkin]
+
+    if (skin.type === 'solid') {
+        ctx.beginPath()
+        ctx.arc(screenX, screenY, player.radius, 0, Math.PI * 2)
+        ctx.fillStyle = player.color
+        ctx.fill()
+
+    } else if (skin.type === 'glow') {
+        ctx.beginPath()
+        ctx.arc(screenX, screenY, player.radius, 0, Math.PI * 2)
+        ctx.fillStyle = player.color
+        ctx.fill()
+
+        ctx.shadowColor = skin.color
+        ctx.shadowBlur = 25
+        ctx.fill()
+        ctx.shadowBlur = 0
+
+    } else if (skin.type === 'watermelon') {
+        ctx.beginPath()
+        ctx.arc(screenX, screenY, player.radius, 0, Math.PI * 2)
+        ctx.fillStyle = '#2d6a4f'
+        ctx.fill()
+
+        ctx.beginPath()
+        ctx.arc(screenX, screenY, player.radius * 0.75, 0, Math.PI * 2)
+        ctx.fillStyle = '#ff4d4d'
+        ctx.fill()
+
+        ctx.strokeStyle = '#1b4332'
+        ctx.lineWidth = player.radius * 0.15
+        for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+            ctx.beginPath()
+            ctx.moveTo(screenX, screenY)
+            ctx.lineTo(screenX + Math.cos(a) * player.radius, screenY + Math.sin(a) * player.radius)
+            ctx.stroke()
+        }
+
+        ctx.fillStyle = '#1b1b1b'
+        for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * Math.PI * 2
+            const sx = screenX + Math.cos(a) * player.radius * 0.4
+            const sy = screenY + Math.sin(a) * player.radius * 0.4
+            ctx.beginPath()
+            ctx.arc(sx, sy, player.radius * 0.06, 0, Math.PI * 2)
+            ctx.fill()
+        }
+
+    } else if (skin.type === 'lemon') {
+        ctx.beginPath()
+        ctx.arc(screenX, screenY, player.radius, 0, Math.PI * 2)
+        ctx.fillStyle = '#fff44f'
+        ctx.fill()
+
+        ctx.fillStyle = '#e6d200'
+        for (let i = 0; i < 10; i++) {
+            const a = Math.random() * Math.PI * 2
+            const r = Math.random() * player.radius * 0.8
+            const dx = screenX + Math.cos(a) * r
+            const dy = screenY + Math.sin(a) * r
+            ctx.beginPath()
+            ctx.arc(dx, dy, 1.5, 0, Math.PI * 2)
+            ctx.fill()
+        }
     }
 }
 
@@ -574,11 +682,7 @@ function render() {
     drawCoins()
     drawBots()
 
-    ctx.beginPath()
-    ctx.arc(player.x - camera.x, player.y - camera.y, player.radius, 0, Math.PI * 2)
-    ctx.fillStyle = player.color
-    ctx.fill()
-
+    drawPlayer()
     ctx.restore()
 }
 
