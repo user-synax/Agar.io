@@ -24,6 +24,24 @@ const camera = {
     y: 0
 }
 
+const food = []
+const FOOD_COUNT = 200
+
+function spawnFood() {
+    return {
+        x: Math.random() * world.width,
+        y: Math.random() * world.height,
+        radius: 5,
+        color: "#f4a261"
+    }
+}
+
+function initFood() {
+    for (let i = 0; i < FOOD_COUNT; i++) {
+        food.push(spawnFood())
+    }
+}
+
 window.addEventListener('mousemove', (e) => {
     mouse.x = e.clientX
     mouse.y = e.clientY
@@ -44,6 +62,9 @@ window.addEventListener('resize', resizeCanvas)
 
 player.x = world.width / 2
 player.y = world.height / 2
+
+mouse.x = canvas.width / 2
+mouse.y = canvas.height / 2
 
 let lastTime = 0
 let deltaTime = 0
@@ -83,8 +104,11 @@ function drawGrid() {
 }
 
 function update(dt) {
-    const dx = mouse.x - player.x
-    const dy = mouse.y - player.y
+    const mouseWorldX = mouse.x + camera.x
+    const mouseWorldY = mouse.y + camera.y
+
+    const dx = mouseWorldX - player.x
+    const dy = mouseWorldY - player.y
     const distance = Math.sqrt(dx * dx + dy * dy)
 
     if (distance > 1) {
@@ -107,15 +131,25 @@ function drawWorldBorder() {
     ctx.strokeRect(0 - camera.x, 0 - camera.y, world.width, world.height)
 }
 
+function drawFood() {
+    for (const f of food) {
+        ctx.beginPath()
+        ctx.arc(f.x - camera.x, f.y - camera.y, f.radius, 0, Math.PI * 2)
+        ctx.fillStyle = f.color
+        ctx.fill()
+    }
+}
+
 function render() {
     ctx.fillStyle = "#0d0d1a"
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
     ctx.fillStyle = "#1a1a2e"
-    ctx.fillRect(0 - camera.x, 0 - camera.y, world.width, world.y)
+    ctx.fillRect(0 - camera.x, 0 - camera.y, world.width, world.height)
 
     drawGrid()
     drawWorldBorder()
+    drawFood()
 
     ctx.beginPath()
     ctx.arc(player.x - camera.x, player.y - camera.y, player.radius, 0, Math.PI * 2)
@@ -125,5 +159,5 @@ function render() {
 
 
 
-
+initFood()
 requestAnimationFrame(gameLoop)
