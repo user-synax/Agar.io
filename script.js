@@ -9,6 +9,27 @@ const dashStatusEl = document.getElementById('dashStatus')
 const dangerOverlayEl = document.getElementById('dangerOverlay')
 const highScoreEl = document.getElementById('highScore')
 
+function loadPlayerData() {
+    const saved = localStorage.getItem('blobio_playerData')
+    if (saved) {
+        return JSON.parse(saved)
+    }
+    return {
+        totalCoins: 0,
+        highScore: 0,
+        gamesPlayed: 0,
+        unlockedSkins: ['default'],
+        selectedSkin: 'default'
+    }
+}
+
+function savePlayerData() {
+    localStorage.setItem('blobio_playerData', JSON.stringify(playerData))
+}
+
+let playerData = loadPlayerData()
+
+
 let score = 0
 let highScore = parseInt(localStorage.getItem('blobio_highscore')) || 0
 let gameOver = false
@@ -64,6 +85,60 @@ const camera = {
     x: 0,
     y: 0,
     zoom: 1
+}
+
+const coins = []
+const COIN_COUNT = 30
+
+
+function spawnCoin() {
+    return {
+        x: Math.random() * world.width,
+        y: Math.random() * world.height,
+        radius: 8,
+        value: 1
+    }
+}
+
+function initCoins() {
+    for (let i = 0; i < COIN_COUNT; i++) {
+        coins.push(spawnCoin())
+    }
+}
+
+let sessionCoins = 0
+
+function checkCoinCollision() {
+    for (let i = coins.length - 1; i >= 0; i--) {
+        const c = coins[i]
+        const dx = player.x - c.x
+        const dy = player.y - c.y
+        const distance = Math.sqrt(dx * dx + dy * dy)
+
+        if (distance < player.radius + c.radius) {
+            coins.splice(i, 1)
+            sessionCoins += c.value
+            playerData.totalCoins += c.value
+            savePlayerData()
+            coins.push(spawnCoin())
+            playTone(1000, 0.08, 'triangle', 0.12)
+        }
+    }
+}
+
+function drawCoins() {
+    for (const c of coins) {
+        const screenX = c.x - camera.x
+        const screenY = c.y - camera.y
+
+        ctx.beginPath()
+        ctx.arc(screenX, screenY, c.radius, 0, Math.PI * 2)
+        ctx.fillStyle = '#ffd700'
+        ctx.fill()
+        ctx.strokeStyle = '#b8860b'
+        ctx.lineWidth = 2
+        ctx.stroke()
+    }
 }
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
@@ -303,6 +378,7 @@ function update(dt) {
     player.x = Math.max(player.radius, Math.min(world.width - player.radius, player.x))
     player.y = Math.max(player.radius, Math.min(world.height - player.radius, player.y))
     checkFoodCollision()
+    checkCoinCollision()
     updateBots(dt)
     checkBotFoodCollision()
     checkPlayerBotCollision()
@@ -495,6 +571,7 @@ function render() {
     drawGrid()
     drawWorldBorder()
     drawFood()
+    drawCoins()
     drawBots()
 
     ctx.beginPath()
@@ -508,5 +585,6 @@ function render() {
 
 
 initFood()
+initCoins()
 initBots()
 requestAnimationFrame(gameLoop)
