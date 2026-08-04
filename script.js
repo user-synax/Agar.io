@@ -405,7 +405,7 @@ function playTone(frequency, duration, type = 'sine', volume = 0.15) {
 }
 
 const food = []
-const FOOD_COUNT = 200
+const FOOD_COUNT = 300
 
 const bots = []
 const BOT_COUNT = 30
@@ -415,7 +415,7 @@ function spawnBot() {
     return {
         x: Math.random() * world.width,
         y: Math.random() * world.height,
-        radius: 15 + Math.random() * 80,
+        radius: 15 + Math.random() * 50,
         color: '#e76f51',
         baseSpeed: 400,
         targetFood: null,
