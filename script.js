@@ -4,6 +4,7 @@ const scoreEl = document.getElementById('score')
 const deathScreenEl = document.getElementById('deathScreen')
 const finalScoreEl = document.getElementById('finalScore')
 const restartBtn = document.getElementById('restartBtn')
+const leaderboardEl = document.getElementById('leaderboard')
 
 let score = 0
 let gameOver = false
@@ -48,6 +49,22 @@ function spawnBot() {
         baseSpeed: 400,
         targetFood: null
     }
+}
+function updateLeaderboard() {
+    const entries = bots.map(b => ({ name: 'Bot', radius: b.radius, isPlayer: false }))
+    entries.push({ name: 'You', radius: player.radius, isPlayer: true })
+
+    entries.sort((a, b) => b.radius - a.radius)
+
+    const top5 = entries.slice(0, 5)
+
+    let html = '<h3>Leaderboard</h3>'
+    top5.forEach((e, i) => {
+        const cls = e.isPlayer ? 'you' : ''
+        html += `<div class="${cls}">${i + 1}. ${e.name} - ${Math.floor(e.radius)}</div>`
+    })
+
+    leaderboardEl.innerHTML = html
 }
 
 function initBots() {
@@ -300,6 +317,8 @@ function drawBots() {
 
 function render() {
     scoreEl.textContent = 'Score: ' + score
+    updateLeaderboard()
+
 
     ctx.fillStyle = "#0d0d1a"
     ctx.fillRect(0, 0, canvas.width, canvas.height)
