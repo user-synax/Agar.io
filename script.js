@@ -1,5 +1,7 @@
 const canvas = document.getElementById('gameCanvas')
 const ctx = canvas.getContext('2d')
+const scoreEl = document.getElementById('score')
+let score = 0
 
 const player = {
     x: 0,
@@ -113,6 +115,7 @@ function checkFoodCollision() {
         if (distance < player.radius + f.radius) {
             food.splice(i, 1)
             player.radius += 0.2
+            score += 10
             food.push(spawnFood())
         }
     }
@@ -156,6 +159,7 @@ function drawFood() {
 }
 
 function render() {
+    scoreEl.textContent = 'Score: ' + score
     ctx.fillStyle = "#0d0d1a"
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
