@@ -211,8 +211,8 @@ const mouse = {
 }
 
 const world = {
-    width: 5000,
-    height: 5000
+    width: 8000,
+    height: 8000
 }
 
 const camera = {
@@ -222,7 +222,7 @@ const camera = {
 }
 
 const coins = []
-const COIN_COUNT = 45
+const COIN_COUNT = 80
 
 
 function spawnCoin() {
@@ -415,11 +415,38 @@ function playTone(frequency, duration, type = 'sine', volume = 0.15) {
 }
 
 const food = []
-const FOOD_COUNT = 300
+const FOOD_COUNT = 500
 
 const bots = []
-const BOT_COUNT = 30
+const BOT_COUNT = 45
 
+const BOSS_MIN_RADIUS = 600
+const BOSS_MAX_RADIUS = 900
+const BOSS_SPAWN_THRESHOLD = 300
+const MAX_BOSS_COUNT = 2
+
+function spawnBoss() {
+    return {
+        x: Math.random() * world.width,
+        y: Math.random() * world.height,
+        radius: BOSS_MIN_RADIUS + Math.random() * (BOSS_MAX_RADIUS - BOSS_MIN_RADIUS),
+        color: '#8b0000',
+        baseSpeed: 300,
+        targetFood: null,
+        name: 'BOSS_' + generateBotName(),
+        isBoss: true
+    }
+}
+
+function checkBossSpawn() {
+    const bossCount = bots.filter(b => b.isBoss).length
+    if (player.radius >= BOSS_SPAWN_THRESHOLD && bossCount < MAX_BOSS_COUNT) {
+        bots.push(spawnBoss())
+        playTone(100, 0.5, 'sawtooth', 0.2)
+    }
+}
+
+let bossCheckTimer = 0
 
 function spawnBot() {
     return {
@@ -526,7 +553,7 @@ window.addEventListener('mousemove', (e) => {
 })
 
 function updateCamera() {
-    camera.zoom = Math.max(0.5, 1 - (player.radius - 20) * 0.003)
+    camera.zoom = Math.max(0.15, 1 / (1 + (player.radius - 20) * 0.0025))
     camera.x = player.x - (canvas.width / camera.zoom) / 2
     camera.y = player.y - (canvas.height / camera.zoom) / 2
 }
@@ -658,6 +685,12 @@ function update(dt) {
         dashCooldownTimer -= dt
     }
 
+    bossCheckTimer -= dt
+    if (bossCheckTimer <= 0) {
+        checkBossSpawn()
+        bossCheckTimer = 5 // har 5 seconds mein check karo
+    }
+
     const mouseWorldX = mouse.x / camera.zoom + camera.x
     const mouseWorldY = mouse.y / camera.zoom + camera.y
 
@@ -703,6 +736,7 @@ function update(dt) {
     checkCoinCollision()
     updateBots(dt)
     checkBotFoodCollision()
+    checkBotBotCollision()
     checkPlayerBotCollision()
     updateCamera()
 }
@@ -797,6 +831,53 @@ function checkBotFoodCollision() {
     }
 }
 
+const BOSS_MIN_SPAWN_DISTANCE = 1500
+
+function spawnBoss() {
+    let x, y
+
+    do {
+        x = Math.random() * world.width
+        y = Math.random() * world.height
+    } while (Math.hypot(x - player.x, y - player.y) < BOSS_MIN_SPAWN_DISTANCE)
+
+    return {
+        x: x,
+        y: y,
+        radius: BOSS_MIN_RADIUS + Math.random() * (BOSS_MAX_RADIUS - BOSS_MIN_RADIUS),
+        color: '#8b0000',
+        baseSpeed: 300,
+        targetFood: null,
+        name: 'BOSS_' + generateBotName(),
+        isBoss: true
+    }
+}
+
+function checkBotBotCollision() {
+    for (let i = bots.length - 1; i >= 0; i--) {
+        const a = bots[i]
+        if (!a) continue
+
+        for (let j = bots.length - 1; j >= 0; j--) {
+            if (i === j) continue
+            const b = bots[j]
+            if (!b) continue
+
+            const dx = a.x - b.x
+            const dy = a.y - b.y
+            const distance = Math.sqrt(dx * dx + dy * dy)
+
+            if (distance < a.radius + b.radius && a.radius > b.radius * 1.1) {
+                a.radius += b.radius * 0.3
+                bots.splice(j, 1)
+                if (j < i) i--
+                bots.push(b.isBoss ? spawnBot() : spawnBot())
+                break
+            }
+        }
+    }
+}
+
 function updateBots(dt) {
     for (const b of bots) {
         let targetX, targetY
@@ -805,12 +886,13 @@ function updateBots(dt) {
             b.radius -= DECAY_RATE * dt
         }
 
+        const chaseRange = b.isBoss ? 1200 : 400
+
         const dxPlayer = player.x - b.x
         const dyPlayer = player.y - b.y
         const distToPlayer = Math.sqrt(dxPlayer * dxPlayer + dyPlayer * dyPlayer)
 
-        // agar bot player se kaafi bada hai aur paas hai, to chase karo
-        if (b.radius > player.radius * 1.15 && distToPlayer < 400) {
+        if (b.radius > player.radius * 1.8 && distToPlayer < chaseRange) {
             targetX = player.x
             targetY = player.y
         } else {
@@ -914,6 +996,17 @@ function drawBots() {
         ctx.arc(b.x - camera.x, b.y - camera.y, b.radius, 0, Math.PI * 2)
         ctx.fillStyle = b.color
         ctx.fill()
+
+        if (b.isBoss) {
+            ctx.shadowColor = '#ff0000'
+            ctx.shadowBlur = 40
+            ctx.fill()
+            ctx.shadowBlur = 0
+
+            ctx.strokeStyle = '#ffcc00'
+            ctx.lineWidth = 5
+            ctx.stroke()
+        }
     }
 }
 
