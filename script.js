@@ -758,6 +758,12 @@ mouse.y = canvas.height / 2
 let lastTime = 0
 let deltaTime = 0
 
+playBtn.addEventListener('click', () => {
+    lobbyScreenEl.classList.add('hidden')
+    document.body.classList.add('game-active')
+    startGame()
+})
+
 function gameLoop(currentTime) {
     if (!lastTime) lastTime = currentTime
     deltaTime = (currentTime - lastTime) / 1000
