@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Agar.io | Simple 2d .io Style Game | Made by user-synax</title>
         <link rel="stylesheet" href="style.css" />
-        <link rel="icon" type="image/x-icon" href="/favicon.png">
+        <link rel="icon" type="image/x-icon" href="/favicon.png" />
     </head>
     <body>
         <canvas id="gameCanvas"></canvas>
@@ -39,6 +39,128 @@
 
                 <h2>Skins</h2>
                 <div id="skinGrid"></div>
+
+                <button id="helpBtn">?</button>
+                <div id="inGameGuide" class="hidden">
+                    <div class="guide-popup">
+                        <h2>Guide</h2>
+                        <div id="guidePanelInGame">
+                            <div class="guide-item">
+                                <div
+                                    class="guide-icon"
+                                    style="background: #f4a261"
+                                ></div>
+                                <div class="guide-text">
+                                    <strong>Food</strong>
+                                    <p>Small dots. Eat them to grow slowly.</p>
+                                </div>
+                            </div>
+                            <div class="guide-item">
+                                <div
+                                    class="guide-icon guide-star"
+                                    style="background: #b565f0"
+                                ></div>
+                                <div class="guide-text">
+                                    <strong>Rare Food (Star)</strong>
+                                    <p>
+                                        Bigger growth and score than normal
+                                        food.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="guide-item">
+                                <div class="guide-icon guide-coin"></div>
+                                <div class="guide-text">
+                                    <strong>Coin</strong>
+                                    <p>
+                                        Doesn't affect size. Spend on skins in
+                                        the lobby.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="guide-item">
+                                <div
+                                    class="guide-icon"
+                                    style="
+                                        background: radial-gradient(
+                                            circle at 30% 30%,
+                                            #fff,
+                                            #4dff77,
+                                            #00ff55
+                                        );
+                                    "
+                                ></div>
+                                <div class="guide-text">
+                                    <strong>Green Orb</strong>
+                                    <p>+50 score instantly.</p>
+                                </div>
+                            </div>
+                            <div class="guide-item">
+                                <div
+                                    class="guide-icon"
+                                    style="
+                                        background: radial-gradient(
+                                            circle at 30% 30%,
+                                            #fff,
+                                            #a020f0,
+                                            #ff00ff
+                                        );
+                                    "
+                                ></div>
+                                <div class="guide-text">
+                                    <strong>Purple Orb (Trap)</strong>
+                                    <p>
+                                        -1000 score and shrinks you. Avoid it.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="guide-item">
+                                <div
+                                    class="guide-icon"
+                                    style="
+                                        background: radial-gradient(
+                                            circle at 30% 30%,
+                                            #fff,
+                                            #00d9ff,
+                                            #00ffff
+                                        );
+                                    "
+                                ></div>
+                                <div class="guide-text">
+                                    <strong>Cyan Orb</strong>
+                                    <p>Free 2 second speed dash.</p>
+                                </div>
+                            </div>
+                            <div class="guide-item">
+                                <div
+                                    class="guide-icon"
+                                    style="background: #fc3200"
+                                ></div>
+                                <div class="guide-text">
+                                    <strong>Bot</strong>
+                                    <p>Eat smaller ones, avoid bigger ones.</p>
+                                </div>
+                            </div>
+                            <div class="guide-item">
+                                <div
+                                    class="guide-icon"
+                                    style="
+                                        background: #8b0000;
+                                        box-shadow: 0 0 8px #ff0000;
+                                    "
+                                ></div>
+                                <div class="guide-text">
+                                    <strong>Boss</strong>
+                                    <p>
+                                        Huge and always hunts you. Very
+                                        dangerous.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="closeGuideBtn">Close</button>
+                    </div>
+                </div>
 
                 <button id="playBtn">Play</button>
             </div>

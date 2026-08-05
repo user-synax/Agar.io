@@ -18,6 +18,18 @@ const playBtn = document.getElementById('playBtn')
 const nicknameInputEl = document.getElementById('nicknameInput')
 const splitStatusEl = document.getElementById('splitStatus')
 
+const helpBtnEl = document.getElementById('helpBtn')
+const inGameGuideEl = document.getElementById('inGameGuide')
+const closeGuideBtnEl = document.getElementById('closeGuideBtn')
+
+helpBtnEl.addEventListener('click', () => {
+    inGameGuideEl.classList.remove('hidden')
+})
+
+closeGuideBtnEl.addEventListener('click', () => {
+    inGameGuideEl.classList.add('hidden')
+})
+
 let playerData = loadPlayerData()
 if (!playerData.nickname) playerData.nickname = 'Player'
 function loadPlayerData() {
@@ -38,6 +50,33 @@ function loadPlayerData() {
 const DECAY_THRESHOLD = 90
 const DECAY_RATE = 2
 
+const ORB_TYPES = {
+    bonus: { color: '#4dff77', glow: '#00ff55', radius: 14 },
+    viper: { color: '#a020f0', glow: '#ff00ff', radius: 14 },
+    dash: { color: '#00d9ff', glow: '#00ffff', radius: 14 }
+}
+
+const orbs = []
+const ORB_COUNT = 15
+
+function spawnOrb() {
+    const types = Object.keys(ORB_TYPES)
+    const type = types[Math.floor(Math.random() * types.length)]
+
+    return {
+        x: Math.random() * world.width,
+        y: Math.random() * world.height,
+        radius: ORB_TYPES[type].radius,
+        type: type,
+        bobOffset: Math.random() * Math.PI * 2
+    }
+}
+
+function initOrbs() {
+    for (let i = 0; i < ORB_COUNT; i++) {
+        orbs.push(spawnOrb())
+    }
+}
 
 const SKINS = {
     default: {
@@ -446,6 +485,45 @@ function checkBossSpawn() {
     }
 }
 
+
+function checkOrbCollision() {
+    for (const cell of player.cells) {
+        for (let i = orbs.length - 1; i >= 0; i--) {
+            const o = orbs[i]
+            const dx = cell.x - o.x
+            const dy = cell.y - o.y
+            const distance = Math.sqrt(dx * dx + dy * dy)
+
+            if (distance < cell.radius + o.radius) {
+                orbs.splice(i, 1)
+                applyOrbEffect(o.type, cell)
+                orbs.push(spawnOrb())
+            }
+        }
+    }
+}
+
+function applyOrbEffect(type, cell) {
+    if (type === 'bonus') {
+        score += 50
+        playTone(1100, 0.2, 'sine', 0.15)
+
+    } else if (type === 'viper') {
+        score = Math.max(0, score - 1000)
+        cell.radius = Math.max(15, cell.radius * 0.7)
+        playTone(120, 0.4, 'sawtooth', 0.2)
+
+    } else if (type === 'dash') {
+        isDashing = true
+        playTone(900, 0.15, 'square', 0.15)
+        setTimeout(() => {
+            isDashing = false
+        }, 2000)
+    }
+}
+
+let elapsedTime = 0
+
 let bossCheckTimer = 0
 
 function spawnBot() {
@@ -678,7 +756,38 @@ restartBtn.addEventListener('click', () => {
     location.reload()
 })
 
+function drawOrbs() {
+    for (const o of orbs) {
+        const bob = Math.sin(elapsedTime * 2 + o.bobOffset) * 4
+        const screenX = o.x - camera.x
+        const screenY = o.y - camera.y + bob
+        const def = ORB_TYPES[o.type]
+
+        const gradient = ctx.createRadialGradient(
+            screenX - o.radius * 0.3, screenY - o.radius * 0.3, o.radius * 0.1,
+            screenX, screenY, o.radius
+        )
+        gradient.addColorStop(0, '#ffffff')
+        gradient.addColorStop(0.4, def.color)
+        gradient.addColorStop(1, def.glow)
+
+        ctx.beginPath()
+        ctx.arc(screenX, screenY, o.radius, 0, Math.PI * 2)
+        ctx.fillStyle = gradient
+        ctx.shadowColor = def.glow
+        ctx.shadowBlur = 20
+        ctx.fill()
+        ctx.shadowBlur = 0
+
+        ctx.beginPath()
+        ctx.ellipse(screenX - o.radius * 0.3, screenY - o.radius * 0.35, o.radius * 0.3, o.radius * 0.15, -0.5, 0, Math.PI * 2)
+        ctx.fillStyle = 'rgba(255,255,255,0.6)'
+        ctx.fill()
+    }
+}
+
 function update(dt) {
+    elapsedTime += dt
     if (gameOver) return
 
     if (dashCooldownTimer > 0) {
@@ -734,6 +843,7 @@ function update(dt) {
 
     checkFoodCollision()
     checkCoinCollision()
+    checkOrbCollision()
     updateBots(dt)
     checkBotFoodCollision()
     checkBotBotCollision()
@@ -886,33 +996,37 @@ function updateBots(dt) {
             b.radius -= DECAY_RATE * dt
         }
 
-        const chaseRange = b.isBoss ? 1200 : 400
-
-        const dxPlayer = player.x - b.x
-        const dyPlayer = player.y - b.y
-        const distToPlayer = Math.sqrt(dxPlayer * dxPlayer + dyPlayer * dyPlayer)
-
-        if (b.radius > player.radius * 1.8 && distToPlayer < chaseRange) {
+        if (b.isBoss) {
+            // boss hamesha player ko chase karega, food kabhi nahi
             targetX = player.x
             targetY = player.y
         } else {
-            // warna nearest food dhoondo (purana logic)
-            let nearestFood = null
-            let nearestDist = Infinity
+            const chaseRange = 400
+            const dxPlayer = player.x - b.x
+            const dyPlayer = player.y - b.y
+            const distToPlayer = Math.sqrt(dxPlayer * dxPlayer + dyPlayer * dyPlayer)
 
-            for (const f of food) {
-                const dx = f.x - b.x
-                const dy = f.y - b.y
-                const dist = Math.sqrt(dx * dx + dy * dy)
-                if (dist < nearestDist) {
-                    nearestDist = dist
-                    nearestFood = f
+            if (b.radius > player.radius * 1.8 && distToPlayer < chaseRange) {
+                targetX = player.x
+                targetY = player.y
+            } else {
+                let nearestFood = null
+                let nearestDist = Infinity
+
+                for (const f of food) {
+                    const dx = f.x - b.x
+                    const dy = f.y - b.y
+                    const dist = Math.sqrt(dx * dx + dy * dy)
+                    if (dist < nearestDist) {
+                        nearestDist = dist
+                        nearestFood = f
+                    }
                 }
-            }
 
-            if (nearestFood) {
-                targetX = nearestFood.x
-                targetY = nearestFood.y
+                if (nearestFood) {
+                    targetX = nearestFood.x
+                    targetY = nearestFood.y
+                }
             }
         }
 
@@ -1045,6 +1159,7 @@ function render() {
     drawWorldBorder()
     drawFood()
     drawCoins()
+    drawOrbs()
     drawBots()
 
     drawPlayer()
@@ -1068,6 +1183,7 @@ function startGame() {
 
     initFood()
     initCoins()
+    initOrbs()
     initBots()
     requestAnimationFrame(gameLoop)
 }
