@@ -30,6 +30,60 @@ closeGuideBtnEl.addEventListener('click', () => {
     inGameGuideEl.classList.add('hidden')
 })
 
+const joystickBaseEl = document.getElementById('joystickBase')
+const joystickKnobEl = document.getElementById('joystickKnob')
+const dashBtnMobileEl = document.getElementById('dashBtnMobile')
+const splitBtnMobileEl = document.getElementById('splitBtnMobile')
+
+let joystickActive = false
+let joystickDirX = 0
+let joystickDirY = 0
+const JOYSTICK_MAX_RADIUS = 40
+
+joystickBaseEl.addEventListener('touchstart', (e) => {
+    joystickActive = true
+    e.preventDefault()
+})
+
+joystickBaseEl.addEventListener('touchmove', (e) => {
+    if (!joystickActive) return
+    e.preventDefault()
+
+    const touch = e.touches[0]
+    const rect = joystickBaseEl.getBoundingClientRect()
+    const centerX = rect.left + rect.width / 2
+    const centerY = rect.top + rect.height / 2
+
+    let dx = touch.clientX - centerX
+    let dy = touch.clientY - centerY
+    const dist = Math.sqrt(dx * dx + dy * dy)
+
+    if (dist > JOYSTICK_MAX_RADIUS) {
+        dx = (dx / dist) * JOYSTICK_MAX_RADIUS
+        dy = (dy / dist) * JOYSTICK_MAX_RADIUS
+    }
+
+    joystickKnobEl.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`
+
+    const magnitude = Math.min(dist, JOYSTICK_MAX_RADIUS) / JOYSTICK_MAX_RADIUS
+    const angle = Math.atan2(dy, dx)
+    joystickDirX = Math.cos(angle) * magnitude
+    joystickDirY = Math.sin(angle) * magnitude
+}, { passive: false })
+
+function resetJoystick() {
+    joystickActive = false
+    joystickDirX = 0
+    joystickDirY = 0
+    joystickKnobEl.style.transform = 'translate(-50%, -50%)'
+}
+
+joystickBaseEl.addEventListener('touchend', resetJoystick)
+joystickBaseEl.addEventListener('touchcancel', resetJoystick)
+
+dashBtnMobileEl.addEventListener('click', triggerDash)
+splitBtnMobileEl.addEventListener('click', triggerSplit)
+
 let playerData = loadPlayerData()
 if (!playerData.nickname) playerData.nickname = 'Player'
 function loadPlayerData() {
@@ -661,20 +715,27 @@ window.addEventListener('keydown', (e) => {
 
 function triggerSplit() {
     if (gameOver) return
-    if (player.cells.length >= 2) return // already split hai
+    if (player.cells.length >= 2) return
 
     const cell = player.cells[0]
     if (cell.radius < MIN_SPLIT_RADIUS) return
 
     const newRadius = cell.radius / Math.SQRT2
 
-    const mouseWorldX = mouse.x / camera.zoom + camera.x
-    const mouseWorldY = mouse.y / camera.zoom + camera.y
-    const dx = mouseWorldX - cell.x
-    const dy = mouseWorldY - cell.y
-    const dist = Math.sqrt(dx * dx + dy * dy) || 1
-    const dirX = dx / dist
-    const dirY = dy / dist
+    let dirX, dirY
+
+    if (joystickActive && (joystickDirX !== 0 || joystickDirY !== 0)) {
+        dirX = joystickDirX
+        dirY = joystickDirY
+    } else {
+        const mouseWorldX = mouse.x / camera.zoom + camera.x
+        const mouseWorldY = mouse.y / camera.zoom + camera.y
+        const dx = mouseWorldX - cell.x
+        const dy = mouseWorldY - cell.y
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1
+        dirX = dx / dist
+        dirY = dy / dist
+    }
 
     cell.radius = newRadius
     cell.mergeTimer = MERGE_COOLDOWN
@@ -804,9 +865,21 @@ function update(dt) {
     const mouseWorldY = mouse.y / camera.zoom + camera.y
 
     for (const cell of player.cells) {
-        const dx = mouseWorldX - cell.x
-        const dy = mouseWorldY - cell.y
-        const distance = Math.sqrt(dx * dx + dy * dy)
+        let dirX, dirY, distance
+
+        if (joystickActive && (joystickDirX !== 0 || joystickDirY !== 0)) {
+            dirX = joystickDirX
+            dirY = joystickDirY
+            distance = 999 // dummy, taaki neeche wala movement-trigger condition true rahe
+        } else {
+            const mouseWorldX = mouse.x / camera.zoom + camera.x
+            const mouseWorldY = mouse.y / camera.zoom + camera.y
+            const dx = mouseWorldX - cell.x
+            const dy = mouseWorldY - cell.y
+            distance = Math.sqrt(dx * dx + dy * dy)
+            dirX = dx / (distance || 1)
+            dirY = dy / (distance || 1)
+        }
 
         let currentSpeed = player.baseSpeed / (cell.radius * 0.02 + 1)
         if (isDashing && player.cells.length === 1) {
@@ -814,8 +887,6 @@ function update(dt) {
         }
 
         if (distance > 1) {
-            const dirX = dx / distance
-            const dirY = dy / distance
             cell.x += dirX * currentSpeed * dt
             cell.y += dirY * currentSpeed * dt
         }
